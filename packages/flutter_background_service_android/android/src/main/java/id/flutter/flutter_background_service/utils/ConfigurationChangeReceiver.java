@@ -5,27 +5,27 @@ import android.content.Context;
 import android.content.Intent;
 
 public class ConfigurationChangeReceiver extends BroadcastReceiver {
-    public interface UiModeChangeHandler {
-        void onUiModeChanged();
+    public interface ConfigurationChangeHandler {
+        void onConfigurationChanged();
     }
 
-    private UiModeChangeHandler uiModeChangeHandler;
+    private ConfigurationChangeHandler changeHandler;
 
-    public ConfigurationChangeReceiver setUiChangeHandler(UiModeChangeHandler uiModeChangeHandler) {
-        this.uiModeChangeHandler = uiModeChangeHandler;
+    public ConfigurationChangeReceiver setUiChangeHandler(ConfigurationChangeHandler changeHandler) {
+        this.changeHandler = changeHandler;
         return this;
     }
 
-    public static ConfigurationChangeReceiver instance(UiModeChangeHandler uiModeChangeHandler) {
-        return new ConfigurationChangeReceiver().setUiChangeHandler(uiModeChangeHandler);
+    public static ConfigurationChangeReceiver instance(ConfigurationChangeHandler changeHandler) {
+        return new ConfigurationChangeReceiver().setUiChangeHandler(changeHandler);
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
-            if (uiModeChangeHandler == null) return;
+            if (changeHandler == null) return;
 
-            uiModeChangeHandler.onUiModeChanged();
+            changeHandler.onConfigurationChanged();
         }
     }
 }

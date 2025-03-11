@@ -41,7 +41,7 @@ import io.flutter.plugin.common.JSONMethodCodec;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-public class BackgroundService extends Service implements MethodChannel.MethodCallHandler, ConfigurationChangeReceiver.UiModeChangeHandler {
+public class BackgroundService extends Service implements MethodChannel.MethodCallHandler, ConfigurationChangeReceiver.ConfigurationChangeHandler {
     private static final String TAG = "BackgroundService";
     private static final String LOCK_NAME = BackgroundService.class.getName()
             + ".Lock";
@@ -117,7 +117,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
-    private void unregisterThemeModeReceiver() {
+    private void unregisterConfigurationChangeReceiver() {
         if (configurationChangeReceiver != null) {
             this.getApplicationContext().unregisterReceiver(configurationChangeReceiver);
             configurationChangeReceiver = null;
@@ -126,7 +126,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     @Override
     public void onDestroy() {
-        unregisterThemeModeReceiver();
+        unregisterConfigurationChangeReceiver();
         if (!isManuallyStopped) {
             WatchdogReceiver.enqueue(this);
         } else {
@@ -366,7 +366,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     }
 
     @Override
-    public void onUiModeChanged() {
+    public void onConfigurationChanged() {
         updateNotification();
     }
 }

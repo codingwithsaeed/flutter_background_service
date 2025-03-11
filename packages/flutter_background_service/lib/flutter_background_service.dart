@@ -5,14 +5,13 @@ import 'dart:async';
 import 'package:flutter_background_service_platform_interface/flutter_background_service_platform_interface.dart';
 
 export 'package:flutter_background_service_platform_interface/flutter_background_service_platform_interface.dart'
-    show IosConfiguration, AndroidConfiguration, ServiceInstance, AndroidForegroundType;
+    show IosConfiguration, AndroidConfiguration, ServiceInstance, AndroidForegroundType, NotificationData;
 
 export 'package:flutter_background_service_android/flutter_background_service_android.dart';
 export 'package:flutter_background_service_ios/flutter_background_service_ios.dart';
 
 class FlutterBackgroundService implements Observable {
-  FlutterBackgroundServicePlatform get _platform =>
-      FlutterBackgroundServicePlatform.instance;
+  FlutterBackgroundServicePlatform get _platform => FlutterBackgroundServicePlatform.instance;
 
   /// configure the background service handler
   /// it's highly recommended to call this method in main() method
@@ -25,8 +24,7 @@ class FlutterBackgroundService implements Observable {
         androidConfiguration: androidConfiguration,
       );
 
-  static FlutterBackgroundService _instance =
-      FlutterBackgroundService._internal();
+  static FlutterBackgroundService _instance = FlutterBackgroundService._internal();
 
   FlutterBackgroundService._internal();
 
@@ -39,8 +37,7 @@ class FlutterBackgroundService implements Observable {
   Future<bool> isRunning() => _platform.isServiceRunning();
 
   @override
-  void invoke(String method, [Map<String, dynamic>? arg]) =>
-      _platform.invoke(method, arg);
+  void invoke(String method, [Map<String, dynamic>? arg]) => _platform.invoke(method, arg);
 
   @override
   Stream<Map<String, dynamic>?> on(String method) => _platform.on(method);

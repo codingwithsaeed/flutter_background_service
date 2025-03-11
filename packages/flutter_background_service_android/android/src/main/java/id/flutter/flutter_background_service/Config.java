@@ -2,6 +2,7 @@ package id.flutter.flutter_background_service;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import com.google.gson.Gson;
 
 public class Config {
     final SharedPreferences pref;
@@ -46,22 +47,6 @@ public class Config {
         pref.edit().putLong("background_handle", value).apply();
     }
 
-    public String getInitialNotificationTitle() {
-        return pref.getString("initial_notification_title", "Background Service");
-    }
-
-    public void setInitialNotificationTitle(String value) {
-        pref.edit().putString("initial_notification_title", value).apply();
-    }
-
-    public String getInitialNotificationContent() {
-        return pref.getString("initial_notification_content", "Preparing");
-    }
-
-    public void setInitialNotificationContent(String value) {
-        pref.edit().putString("initial_notification_content", value).apply();
-    }
-
     public String getNotificationChannelId() {
         return pref.getString("notification_channel_id", null);
     }
@@ -84,6 +69,14 @@ public class Config {
 
     public void setForegroundServiceTypes(String value) {
         pref.edit().putString("foreground_service_types", value).apply();
+    }
+
+    public void setNotificationData(NotificationData data) {
+        pref.edit().putString("notification_data", new Gson().toJson(data)).apply();
+    }
+
+    public NotificationData getNotificationData() {
+        return new Gson().fromJson(pref.getString("notification_data", null), NotificationData.class);
     }
 
 }

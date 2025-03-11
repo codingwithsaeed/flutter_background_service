@@ -4,14 +4,14 @@ import 'package:flutter_background_service_platform_interface/src/configs.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 export 'src/configs.dart';
+export 'src/notification_data.dart';
 
 abstract class Observable {
   void invoke(String method, [Map<String, dynamic>? args]);
   Stream<Map<String, dynamic>?> on(String method);
 }
 
-abstract class FlutterBackgroundServicePlatform extends PlatformInterface
-    implements Observable {
+abstract class FlutterBackgroundServicePlatform extends PlatformInterface implements Observable {
   FlutterBackgroundServicePlatform() : super(token: _token);
   static final Object _token = Object();
 

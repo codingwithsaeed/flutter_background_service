@@ -9,6 +9,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -21,6 +22,8 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
 
+import com.google.gson.Gson;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -28,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import id.flutter.flutter_background_service.utils.ConfigurationChangeReceiver;
+import id.flutter.flutter_background_service.utils.ServiceNotification;
 import io.flutter.FlutterInjector;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
@@ -36,7 +41,7 @@ import io.flutter.plugin.common.JSONMethodCodec;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-public class BackgroundService extends Service implements MethodChannel.MethodCallHandler {
+public class BackgroundService extends Service implements MethodChannel.MethodCallHandler, ConfigurationChangeReceiver.UiModeChangeHandler {
     private static final String TAG = "BackgroundService";
     private static final String LOCK_NAME = BackgroundService.class.getName()
             + ".Lock";
@@ -47,13 +52,13 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     private Config config;
     private DartExecutor.DartEntrypoint dartEntrypoint;
     private boolean isManuallyStopped = false;
-    private String notificationTitle;
-    private String notificationContent;
     private String notificationChannelId;
     private int notificationId;
     private String configForegroundTypes;
-    private String[] foregroundTypes;
     private Handler mainHandler;
+
+    private ConfigurationChangeReceiver configurationChangeReceiver;
+    private NotificationData notificationData;
 
     synchronized public static PowerManager.WakeLock getLock(Context context) {
         if (lockStatic == null) {
@@ -94,16 +99,34 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             this.notificationChannelId = notificationChannelId;
         }
 
-        notificationTitle = config.getInitialNotificationTitle();
-        notificationContent = config.getInitialNotificationContent();
         notificationId = config.getForegroundNotificationId();
         configForegroundTypes = config.getForegroundServiceTypes();
-        updateNotificationInfo();
+
+        notificationData = config.getNotificationData();
+
+        updateNotification();
         onStartCommand(null, -1, -1);
+        registerConfigurationChangeReceiver();
+    }
+
+    private void registerConfigurationChangeReceiver() {
+        if (configurationChangeReceiver == null) {
+            configurationChangeReceiver = ConfigurationChangeReceiver.instance(this);
+            IntentFilter filter = new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED);
+            this.getApplicationContext().registerReceiver(configurationChangeReceiver, filter);
+        }
+    }
+
+    private void unregisterThemeModeReceiver() {
+        if (configurationChangeReceiver != null) {
+            this.getApplicationContext().unregisterReceiver(configurationChangeReceiver);
+            configurationChangeReceiver = null;
+        }
     }
 
     @Override
     public void onDestroy() {
+        unregisterThemeModeReceiver();
         if (!isManuallyStopped) {
             WatchdogReceiver.enqueue(this);
         } else {
@@ -145,7 +168,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
     }
 
-    protected void updateNotificationInfo() {
+    protected void updateNotification() {
         if (config.isForeground()) {
             String packageName = getApplicationContext().getPackageName();
             Intent i = getPackageManager().getLaunchIntentForPackage(packageName);
@@ -156,23 +179,17 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             }
 
             PendingIntent pi = PendingIntent.getActivity(BackgroundService.this, 11, i, flags);
-            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, notificationChannelId)
-                    .setSmallIcon(R.drawable.ic_bg_service_small)
-                    .setAutoCancel(true)
-                    .setOngoing(true)
-                    .setContentTitle(notificationTitle)
-                    .setContentText(notificationContent)
-                    .setContentIntent(pi);
+            NotificationCompat.Builder notificationBuilder = ServiceNotification.builder(this, notificationChannelId, pi, notificationData);
 
             try {
-                foregroundTypes = null;
+                String[] foregroundTypes = null;
                 if (configForegroundTypes != null && !configForegroundTypes.isEmpty()) {
                     foregroundTypes = configForegroundTypes.split(",");
                 }
                 Integer serviceType = ForegroundTypeMapper.getForegroundServiceType(foregroundTypes);
-                ServiceCompat.startForeground(this, notificationId, mBuilder.build(), serviceType);
+                ServiceCompat.startForeground(this, notificationId, notificationBuilder.build(), serviceType);
             } catch (SecurityException e) {
-              Log.w(TAG, "Failed to start foreground service due to SecurityException - have you forgotten to request a permission? - " + e.getMessage());
+                Log.w(TAG, "Failed to start foreground service due to SecurityException - have you forgotten to request a permission? - " + e.getMessage());
             }
         }
     }
@@ -197,7 +214,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             Log.v(TAG, "Starting flutter engine for background service");
             getLock(getApplicationContext()).acquire();
 
-            updateNotificationInfo();
+            updateNotification();
 
             FlutterLoader flutterLoader = FlutterInjector.instance().flutterLoader();
             // initialize flutter if it's not initialized yet
@@ -228,8 +245,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
             backgroundEngine.getDartExecutor().executeDartEntrypoint(dartEntrypoint, args);
 
         } catch (UnsatisfiedLinkError e) {
-            notificationContent = "Error " + e.getMessage();
-            updateNotificationInfo();
+            updateNotification();
 
             Log.w(TAG, "UnsatisfiedLinkError: After a reboot this may happen for a short period and it is ok to ignore then!" + e.getMessage());
         }
@@ -260,12 +276,12 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         String method = call.method;
 
         try {
-            if (method.equalsIgnoreCase("setNotificationInfo")) {
+            if (method.equalsIgnoreCase("setNotificationData")) {
                 JSONObject arg = (JSONObject) call.arguments;
-                if (arg.has("title")) {
-                    notificationTitle = arg.getString("title");
-                    notificationContent = arg.getString("content");
-                    updateNotificationInfo();
+                if (arg.has("notification_data")) {
+                    notificationData = new Gson().fromJson(arg.getString("notification_data"), NotificationData.class);
+                    config.setNotificationData(notificationData);
+                    updateNotification();
                     result.success(true);
                 }
                 return;
@@ -284,7 +300,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 boolean value = arg.getBoolean("value");
                 config.setIsForeground(value);
                 if (value) {
-                    updateNotificationInfo();
+                    updateNotification();
                     backgroundEngine.getServiceControlSurface().onMoveToForeground();
                 } else {
                     stopForeground(true);
@@ -311,7 +327,7 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
             if (method.equalsIgnoreCase("sendData")) {
                 try {
-                    if (FlutterBackgroundServicePlugin.mainPipe.hasListener()){
+                    if (FlutterBackgroundServicePlugin.mainPipe.hasListener()) {
                         FlutterBackgroundServicePlugin.mainPipe.invoke((JSONObject) call.arguments);
                     }
 
@@ -322,10 +338,10 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 return;
             }
 
-            if(method.equalsIgnoreCase("openApp")){
-                try{
-                    String packageName=  getPackageName();
-                    Intent launchIntent= getPackageManager().getLaunchIntentForPackage(packageName);
+            if (method.equalsIgnoreCase("openApp")) {
+                try {
+                    String packageName = getPackageName();
+                    Intent launchIntent = getPackageManager().getLaunchIntentForPackage(packageName);
                     if (launchIntent != null) {
                         launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         launchIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -334,8 +350,8 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                         result.success(true);
 
                     }
-                }catch (Exception e){
-                    result.error("open app failure", e.getMessage(),e);
+                } catch (Exception e) {
+                    result.error("open app failure", e.getMessage(), e);
 
                 }
                 return;
@@ -347,5 +363,10 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
         }
 
         result.notImplemented();
+    }
+
+    @Override
+    public void onUiModeChanged() {
+        updateNotification();
     }
 }

@@ -9,6 +9,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
+import com.google.gson.Gson;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -91,10 +93,10 @@ public class FlutterBackgroundServicePlugin implements FlutterPlugin, MethodCall
                 boolean isForeground = arg.getBoolean("is_foreground_mode");
                 boolean autoStartOnBoot = arg.getBoolean("auto_start_on_boot");
                 boolean autoStart = arg.getBoolean("auto_start");
-                String initialNotificationTitle = arg.isNull("initial_notification_title") ? null : arg.getString("initial_notification_title");
-                String initialNotificationContent = arg.isNull("initial_notification_content") ? null : arg.getString("initial_notification_content");
+
                 String notificationChannelId = arg.isNull("notification_channel_id") ? null : arg.getString("notification_channel_id");
-                int foregroundNotificationId = arg.isNull("foreground_notification_id") ? null : arg.getInt("foreground_notification_id");
+                Integer foregroundNotificationId = arg.isNull("foreground_notification_id") ? null : arg.getInt("foreground_notification_id");
+
                 JSONArray foregroundServiceTypes = arg.isNull("foreground_service_types") ? null : arg.getJSONArray("foreground_service_types");
                 String foregroundServiceTypesStr = null;
                 if (foregroundServiceTypes != null) {
@@ -108,14 +110,15 @@ public class FlutterBackgroundServicePlugin implements FlutterPlugin, MethodCall
                     foregroundServiceTypesStr = resultForegroundServiceType.toString();
                 }
 
+                NotificationData notificationData = new Gson().fromJson(arg.getString("notification_data"), NotificationData.class);
+
                 config.setBackgroundHandle(backgroundHandle);
                 config.setIsForeground(isForeground);
                 config.setAutoStartOnBoot(autoStartOnBoot);
-                config.setInitialNotificationTitle(initialNotificationTitle);
-                config.setInitialNotificationContent(initialNotificationContent);
                 config.setNotificationChannelId(notificationChannelId);
-                config.setForegroundNotificationId(foregroundNotificationId);
+                config.setForegroundNotificationId(foregroundNotificationId == null ? 0 : foregroundNotificationId);
                 config.setForegroundServiceTypes(foregroundServiceTypesStr);
+                config.setNotificationData(notificationData);
 
                 if (autoStart) {
                     start();

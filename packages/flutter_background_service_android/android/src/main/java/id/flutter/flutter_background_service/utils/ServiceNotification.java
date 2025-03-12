@@ -68,12 +68,11 @@ public class ServiceNotification {
     }
 
     protected static RemoteViews bigContentView(Context context, NotificationData notificationData) {
-        int dayWrapperColor = ServiceUi.Theme.adaptiveColorOf(context, notificationData.getTheme());
-        Bitmap dayWrapperBitmap = BitmapUtils.colorFilterOf(context, R.drawable.soha_widget, dayWrapperColor);
+        Bitmap dayWrapperBitmap = BitmapUtils.colorFilterOf(context, R.drawable.soha_widget, ServiceUi.Mode.of(context).textColor);
 
         return RemoteViewBuilder.instance(context, R.layout.notification_layout)
                 .add(R.id.img_day_wrapper, dayWrapperBitmap)
-                .add(R.id.txt_currentDay, notificationData.getDay(), 25, dayWrapperColor)
+                .add(R.id.txt_currentDay, notificationData.getDay(), 25)
                 .add(R.id.txt_currentJalali, notificationData.getJalali(), 20)
                 .add(R.id.txt_currentMiladi, notificationData.getMiladi(), 16)
                 .add(R.id.txt_currentHijri, notificationData.getHijri(), 16)

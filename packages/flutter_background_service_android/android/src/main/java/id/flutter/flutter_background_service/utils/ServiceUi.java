@@ -60,8 +60,7 @@ public final class ServiceUi {
         }
 
         public static Mode of(Context context) {
-            int nightModeFlags = context.getApplicationContext().getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-            return (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) ? dark : light;
+            return Utils.isNightMode(context) ? dark : light;
         }
     }
 }

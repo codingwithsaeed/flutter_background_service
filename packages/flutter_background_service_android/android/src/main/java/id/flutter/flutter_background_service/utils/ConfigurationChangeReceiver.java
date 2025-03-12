@@ -3,6 +3,10 @@ package id.flutter.flutter_background_service.utils;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.util.Log;
+
+import id.flutter.flutter_background_service.Config;
 
 public class ConfigurationChangeReceiver extends BroadcastReceiver {
     public interface ConfigurationChangeHandler {
@@ -23,9 +27,16 @@ public class ConfigurationChangeReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (intent.getAction() != null && intent.getAction().equals(Intent.ACTION_CONFIGURATION_CHANGED)) {
-            if (changeHandler == null) return;
-
-            changeHandler.onConfigurationChanged();
+            new java.util.Timer().schedule(
+                    new java.util.TimerTask() {
+                        @Override
+                        public void run() {
+                            if (changeHandler == null) return;
+                            changeHandler.onConfigurationChanged();
+                        }
+                    },
+                    1000
+            );
         }
     }
 }

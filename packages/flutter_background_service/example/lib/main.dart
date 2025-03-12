@@ -24,8 +24,12 @@ Future<void> initializeService() async {
         autoStart: true,
         isForegroundMode: isGranted,
         foregroundServiceTypes: [AndroidForegroundType.dataSync],
-        notificationData:
-            const NotificationData(day: "1", jalali: "جلالی", miladi: "miladi", hijri: "هجری", theme: "sohaBlue")),
+        notificationData: const NotificationData(
+            day: "22",
+            jalali: "چهارشنبه 22 اسفند 1403",
+            miladi: "12 مارس 2025",
+            hijri: "11 رمضان 1446",
+            theme: "sohaBlue")),
     iosConfiguration: IosConfiguration(
       autoStart: true,
       onForeground: onStart,
@@ -78,40 +82,39 @@ void onStart(ServiceInstance service) async {
   });
 
   // bring to foreground
-  Timer.periodic(const Duration(seconds: 1), (timer) async {
-    if (service is AndroidServiceInstance) {
-      if (await service.isForegroundService()) {
-        service.setForegroundNotificationInfo(
-          notificationData: NotificationData(
-              day: timer.tick <= 30 ? timer.tick.toString() : '31',
-              jalali: "جلالی",
-              miladi: "miladi",
-              hijri: "هجری",
-              theme: "purplito"),
-        );
-      }
+
+  if (service is AndroidServiceInstance) {
+    if (await service.isForegroundService()) {
+      service.setForegroundNotificationInfo(
+        notificationData: const NotificationData(
+            day: "22",
+            jalali: "چهارشنبه 22 اسفند 1403",
+            miladi: "12 مارس 2025",
+            hijri: "11 رمضان 1446",
+            theme: "sohaBlue"),
+      );
     }
+  }
 
-    debugPrint('FLUTTER BACKGROUND SERVICE: ${DateTime.now()}');
+  debugPrint('FLUTTER BACKGROUND SERVICE: ${DateTime.now()}');
 
-    final deviceInfo = DeviceInfoPlugin();
-    String? device;
-    if (Platform.isAndroid) {
-      final androidInfo = await deviceInfo.androidInfo;
-      device = androidInfo.model;
-    } else if (Platform.isIOS) {
-      final iosInfo = await deviceInfo.iosInfo;
-      device = iosInfo.model;
-    }
+  final deviceInfo = DeviceInfoPlugin();
+  String? device;
+  if (Platform.isAndroid) {
+    final androidInfo = await deviceInfo.androidInfo;
+    device = androidInfo.model;
+  } else if (Platform.isIOS) {
+    final iosInfo = await deviceInfo.iosInfo;
+    device = iosInfo.model;
+  }
 
-    service.invoke(
-      'update',
-      {
-        "current_date": DateTime.now().toIso8601String(),
-        "device": device,
-      },
-    );
-  });
+  service.invoke(
+    'update',
+    {
+      "current_date": DateTime.now().toIso8601String(),
+      "device": device,
+    },
+  );
 }
 
 class MyApp extends StatefulWidget {

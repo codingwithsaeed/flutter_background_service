@@ -8,31 +8,15 @@
     android:baselineAligned="false"
     android:orientation="horizontal">
 
-    <FrameLayout
-        android:id="@+id/soha_widget_container"
-        android:layout_width="56dp"
+    <ImageView
+        android:id="@+id/img_current_day"
+        android:layout_width="50dp"
         android:layout_height="56dp"
         android:layout_gravity="center"
-        android:layout_marginEnd="4dp">
+        android:layout_marginEnd="4dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/ic_layout_1" />
 
-        <ImageView
-            android:id="@+id/img_day_wrapper"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:scaleType="fitXY"
-            android:src="@drawable/soha_widget" />
-
-        <ImageView
-            android:id="@+id/txt_currentDay"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="10dp"
-            android:gravity="center"
-            android:textColor="#FFFFFF"
-            android:textSize="22sp"
-            tools:text="22" />
-    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"

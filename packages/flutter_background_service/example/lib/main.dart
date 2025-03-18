@@ -29,7 +29,7 @@ Future<void> initializeService() async {
             jalali: "چهارشنبه 22 اسفند 1403",
             miladi: "12 مارس 2025",
             hijri: "11 رمضان 1446",
-            theme: "sohaBlue")),
+            theme: "purplito")),
     iosConfiguration: IosConfiguration(
       autoStart: true,
       onForeground: onStart,
@@ -91,7 +91,7 @@ void onStart(ServiceInstance service) async {
             jalali: "چهارشنبه 22 اسفند 1403",
             miladi: "12 مارس 2025",
             hijri: "11 رمضان 1446",
-            theme: "sohaBlue"),
+            theme: "purplito"),
       );
     }
   }

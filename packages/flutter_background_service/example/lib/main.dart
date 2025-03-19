@@ -75,11 +75,15 @@ void onStart(ServiceInstance service) async {
     service.on('setAsBackground').listen((event) {
       service.setAsBackgroundService();
     });
-  }
 
-  service.on('stopService').listen((event) {
-    service.stopSelf();
-  });
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
+
+    service.on('notify').listen((event) {
+      service.notify("Title From Example", "Body From Example", soundName:  "ding");
+    });
+  }
 
   // bring to foreground
 
@@ -162,6 +166,10 @@ class _MyAppState extends State<MyApp> {
             ElevatedButton(
               child: const Text("Background Mode"),
               onPressed: () => FlutterBackgroundService().invoke("setAsBackground"),
+            ),
+            ElevatedButton(
+              child: const Text("Notify"),
+              onPressed: () => FlutterBackgroundService().invoke("notify"),
             ),
             ElevatedButton(
               child: Text(text),

@@ -227,4 +227,18 @@ class AndroidServiceInstance extends ServiceInstance {
     final result = await _channel.invokeMethod('openApp');
     return result ?? false;
   }
+
+  Future<void> notify(
+    String title,
+    String description, {
+    String soundName = "ding",
+    bool loop = false,
+  }) async {
+    await _channel.invokeMethod("showAlarmNotif", {
+      "title": title,
+      "description": description,
+      "sound_name": soundName,
+      "loop": loop,
+    });
+  }
 }

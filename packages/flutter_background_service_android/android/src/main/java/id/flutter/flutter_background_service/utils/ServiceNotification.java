@@ -1,20 +1,32 @@
 package id.flutter.flutter_background_service.utils;
 
+import static android.os.Build.VERSION.SDK_INT;
 import static androidx.core.app.NotificationCompat.CATEGORY_SERVICE;
 
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.widget.RemoteViews;
 
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import java.util.HashMap;
 
+import id.flutter.flutter_background_service.BackgroundService;
 import id.flutter.flutter_background_service.R;
 import id.flutter.flutter_background_service.NotificationData;
 
 public class ServiceNotification {
+    public static final String ACTION_CLOSE_NOTIF = "closeNotif";
+    public static final String EXTRA_NOTIF_ID = "notifId";
+    public static final String EXTRA_NOTIF_CHANNEL = "notifChannel";
+
     private ServiceNotification() {
     }
 
@@ -123,6 +135,24 @@ public class ServiceNotification {
     }
 
 
+    protected static final HashMap<String, Integer> NOTIFY_SOUNDS = new HashMap<String, Integer>() {
+        {
+            put("1", R.raw.one);
+            put("2", R.raw.two);
+            put("3", R.raw.three);
+            put("4", R.raw.four);
+            put("5", R.raw.five);
+            put("6", R.raw.six);
+            put("ding", R.raw.ding);
+        }
+    };
+
+    protected static int getNotifySound(String name) {
+        Integer sound = NOTIFY_SOUNDS.get(name);
+        return sound == null ? R.raw.ding : sound;
+    }
+
+
     public static NotificationCompat.Builder builder(
             Context context,
             String channelId,
@@ -138,4 +168,48 @@ public class ServiceNotification {
                 .setCategory(CATEGORY_SERVICE)
                 .setContentIntent(pi);
     }
+
+    public static void notify(Context context, String title, String description, String soundName, boolean loop) {
+        String channelId = "Soha_Alarm";
+        int notificationId = 10202;
+
+        if (SDK_INT >= Build.VERSION_CODES.O) {
+            int importance = NotificationManager.IMPORTANCE_HIGH;
+            NotificationChannel channel = new NotificationChannel(channelId, channelId, importance);
+            NotificationManager notificationManager = context.getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
+
+        Intent closeNotifIntent = new Intent(context, CloseNotificationReceiver.class);
+
+        closeNotifIntent.setAction(ACTION_CLOSE_NOTIF);
+        closeNotifIntent.putExtra(EXTRA_NOTIF_ID, notificationId);
+        closeNotifIntent.putExtra(EXTRA_NOTIF_CHANNEL, channelId);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (SDK_INT >= Build.VERSION_CODES.S) {
+            flags |= PendingIntent.FLAG_MUTABLE;
+        }
+        PendingIntent closeNotifPI = PendingIntent.getBroadcast(context, 12020, closeNotifIntent, flags);
+
+        int sound = getNotifySound(soundName);
+        Intent playSoundIntent = new Intent(BackgroundService.ACTION_PLAY_SOUND);
+        playSoundIntent.putExtra(BackgroundService.EXTRA_SOUND_ID, sound);
+        playSoundIntent.putExtra(BackgroundService.EXTRA_SOUND_LOOP, loop);
+        context.sendBroadcast(playSoundIntent);
+
+        Notification notification = new NotificationCompat.Builder(context, channelId)
+                .setSmallIcon(R.drawable.ic_stat_soha)
+                .setContentTitle(title)
+                .setContentText(description)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setOngoing(true)
+                .addAction(R.drawable.ic_stat_soha, "close", closeNotifPI)
+                .build();
+
+        // Issue the notification.
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
+        notificationManager.notify(notificationId, notification);
+    }
+
+
 }

@@ -7,9 +7,11 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -21,6 +23,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
+import androidx.core.content.ContextCompat;
 
 import com.google.gson.Gson;
 
@@ -29,10 +32,13 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import id.flutter.flutter_background_service.utils.ConfigurationChangeReceiver;
+import id.flutter.flutter_background_service.utils.MediaPlayerReceiver;
 import id.flutter.flutter_background_service.utils.ServiceNotification;
+import id.flutter.flutter_background_service.utils.Utils;
 import io.flutter.FlutterInjector;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.embedding.engine.dart.DartExecutor;
@@ -41,10 +47,20 @@ import io.flutter.plugin.common.JSONMethodCodec;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 
-public class BackgroundService extends Service implements MethodChannel.MethodCallHandler, ConfigurationChangeReceiver.ConfigurationChangeHandler {
+public class BackgroundService extends Service implements
+        MethodChannel.MethodCallHandler,
+        ConfigurationChangeReceiver.ConfigurationChangeHandler,
+        MediaPlayerReceiver.MediaPlayerListener
+{
     private static final String TAG = "BackgroundService";
     private static final String LOCK_NAME = BackgroundService.class.getName()
             + ".Lock";
+
+    public static final String ACTION_PLAY_SOUND = "playSound";
+    public static final String ACTION_STOP_SOUND = "stopSound";
+    public static final String EXTRA_SOUND_ID = "soundId";
+    public static final String EXTRA_SOUND_LOOP = "soundLoop";
+
     public static volatile WakeLock lockStatic = null; // notice static
     AtomicBoolean isRunning = new AtomicBoolean(false);
     private FlutterEngine backgroundEngine;
@@ -59,6 +75,9 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
     private ConfigurationChangeReceiver configurationChangeReceiver;
     private NotificationData notificationData;
+
+    private MediaPlayerReceiver mediaPlayerReceiver;
+    private MediaPlayer player;
 
     synchronized public static PowerManager.WakeLock getLock(Context context) {
         if (lockStatic == null) {
@@ -106,27 +125,40 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
 
         updateNotification();
         onStartCommand(null, -1, -1);
-        registerConfigurationChangeReceiver();
+        registerReceivers();
     }
 
-    private void registerConfigurationChangeReceiver() {
+    private void registerReceivers() {
         if (configurationChangeReceiver == null) {
             configurationChangeReceiver = ConfigurationChangeReceiver.instance(this);
             IntentFilter filter = new IntentFilter(Intent.ACTION_CONFIGURATION_CHANGED);
             this.getApplicationContext().registerReceiver(configurationChangeReceiver, filter);
         }
+        if (mediaPlayerReceiver == null) {
+            mediaPlayerReceiver = MediaPlayerReceiver.instance(this);
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(ACTION_PLAY_SOUND);
+            filter.addAction(ACTION_STOP_SOUND);
+            this.getApplicationContext().registerReceiver(mediaPlayerReceiver, filter);
+
+        }
     }
 
-    private void unregisterConfigurationChangeReceiver() {
+    private void unregisterReceivers() {
         if (configurationChangeReceiver != null) {
             this.getApplicationContext().unregisterReceiver(configurationChangeReceiver);
             configurationChangeReceiver = null;
+        }
+
+        if (mediaPlayerReceiver != null) {
+            this.getApplicationContext().unregisterReceiver(mediaPlayerReceiver);
+            mediaPlayerReceiver = null;
         }
     }
 
     @Override
     public void onDestroy() {
-        unregisterConfigurationChangeReceiver();
+        unregisterReceivers();
         if (!isManuallyStopped) {
             WatchdogReceiver.enqueue(this);
         } else {
@@ -357,8 +389,21 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
                 return;
 
             }
+
+            if (method.equalsIgnoreCase("showAlarmNotif")) {
+
+                JSONObject arg = (JSONObject) call.arguments;
+                String title = arg.getString("title");
+                String description = arg.getString("description");
+                String soundName = arg.getString("sound_name");
+                boolean loop = arg.getBoolean("loop");
+                ServiceNotification.notify(this, title, description, soundName, loop);
+                result.success(true);
+
+                return;
+            }
         } catch (JSONException e) {
-            Log.e(TAG, e.getMessage());
+            Log.e(TAG, Objects.requireNonNull(e.getMessage()));
             e.printStackTrace();
         }
 
@@ -368,5 +413,22 @@ public class BackgroundService extends Service implements MethodChannel.MethodCa
     @Override
     public void onConfigurationChanged() {
         updateNotification();
+    }
+
+    @Override
+    public void playSound(int soundId, boolean loop) {
+        stopSound();
+        player = MediaPlayer.create(this, soundId);
+        player.setLooping(loop);
+        player.start();
+    }
+
+    @Override
+    public void stopSound() {
+        if(player != null) {
+            player.stop();
+            player.release();
+            player = null;
+        }
     }
 }

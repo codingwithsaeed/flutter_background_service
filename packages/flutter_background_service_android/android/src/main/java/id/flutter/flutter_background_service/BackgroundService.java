@@ -139,8 +139,7 @@ public class BackgroundService extends Service implements
             IntentFilter filter = new IntentFilter();
             filter.addAction(ACTION_PLAY_SOUND);
             filter.addAction(ACTION_STOP_SOUND);
-            this.getApplicationContext().registerReceiver(mediaPlayerReceiver, filter);
-
+            ContextCompat.registerReceiver(this.getApplicationContext(), mediaPlayerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
         }
     }
 

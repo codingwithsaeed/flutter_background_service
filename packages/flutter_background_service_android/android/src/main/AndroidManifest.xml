@@ -51,15 +51,15 @@
             </intent-filter>
         </receiver>
 
-<!--        <receiver-->
-<!--            android:name=".utils.MediaPlayerReceiver"-->
-<!--            android:enabled="true"-->
-<!--            android:exported="true">-->
-<!--            <intent-filter>-->
-<!--                <action android:name="playSound"/>-->
-<!--                <action android:name="stopSound"/>-->
-<!--            </intent-filter>-->
-<!--        </receiver>-->
+        <receiver
+            android:name=".utils.MediaPlayerReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="sohaPlaySound"/>
+                <action android:name="sohaStopSound"/>
+            </intent-filter>
+        </receiver>
 
     </application>
 </manifest>

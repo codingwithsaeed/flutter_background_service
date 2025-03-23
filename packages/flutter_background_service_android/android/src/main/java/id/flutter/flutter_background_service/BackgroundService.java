@@ -56,8 +56,8 @@ public class BackgroundService extends Service implements
     private static final String LOCK_NAME = BackgroundService.class.getName()
             + ".Lock";
 
-    public static final String ACTION_PLAY_SOUND = "playSound";
-    public static final String ACTION_STOP_SOUND = "stopSound";
+    public static final String ACTION_PLAY_SOUND = "sohaPlaySound";
+    public static final String ACTION_STOP_SOUND = "sohaStopSound";
     public static final String EXTRA_SOUND_ID = "soundId";
     public static final String EXTRA_SOUND_LOOP = "soundLoop";
 
@@ -139,7 +139,7 @@ public class BackgroundService extends Service implements
             IntentFilter filter = new IntentFilter();
             filter.addAction(ACTION_PLAY_SOUND);
             filter.addAction(ACTION_STOP_SOUND);
-            ContextCompat.registerReceiver(this.getApplicationContext(), mediaPlayerReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            ContextCompat.registerReceiver(this.getApplicationContext(), mediaPlayerReceiver, filter, ContextCompat.RECEIVER_EXPORTED);
         }
     }
 
@@ -416,6 +416,7 @@ public class BackgroundService extends Service implements
 
     @Override
     public void playSound(int soundId, boolean loop) {
+        Log.i(TAG, "playSound: soundId: " + soundId + ", loop: " + loop);
         stopSound();
         player = MediaPlayer.create(this, soundId);
         player.setLooping(loop);
@@ -424,6 +425,7 @@ public class BackgroundService extends Service implements
 
     @Override
     public void stopSound() {
+        Log.i(TAG, "stopSound");
         if(player != null) {
             player.stop();
             player.release();
